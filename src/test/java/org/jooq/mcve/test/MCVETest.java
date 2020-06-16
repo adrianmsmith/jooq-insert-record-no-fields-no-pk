@@ -39,6 +39,7 @@ package org.jooq.mcve.test;
 
 import static org.jooq.mcve.Tables.TEST;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -71,14 +72,19 @@ public class MCVETest {
 
     @Test
     public void mcveTest() {
-        TestRecord result =
-        ctx.insertInto(TEST)
-           .columns(TEST.VALUE)
-           .values(42)
-           .returning(TEST.ID)
-           .fetchOne();
+        // The table has an "id" field (auto-generated) and a "value" field (nullable)
+        // If you create a Record, set the "value" to be null explicitly (although it's null by default)
+        // then everything works fine.
+        var r1 = ctx.newRecord(TEST);
+        r1.setValue(null);
+        r1.insert();
+        assertNotNull(r1.getId());
 
-        result.refresh();
-        assertEquals(42, (int) result.getValue());
+        // However, if you don't set "value" to be null explicitly, i.e. don't set a single field
+        // and then do the insert, it appears to work, i.e. r.insert() doesn't throw an exception,
+        // however the ID field is not set.
+        var r2 = ctx.newRecord(TEST);
+        r2.insert();
+        assertNotNull(r2.getId());
     }
 }
